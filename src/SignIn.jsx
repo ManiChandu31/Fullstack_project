@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 function SignIn() {
   const navigate = useNavigate();
   const [role, setRole] = useState("student");
-  const [studentLoginType, setStudentLoginType] = useState("userid");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
 
@@ -47,14 +46,11 @@ function SignIn() {
 
     const users = getStoredUsers();
 
-    const foundUser = users.find((u) => {
-      const isIdentifierMatch =
-        studentLoginType === "email"
-          ? u.email === normalizedEmail
-          : u.userId === normalizedIdentifier;
-
-      return isIdentifierMatch && u.password === normalizedPassword;
-    });
+    const foundUser = users.find(
+      (u) =>
+        (u.email === normalizedEmail || u.userId === normalizedIdentifier) &&
+        u.password === normalizedPassword
+    );
 
     if (foundUser) {
       alert("User Login Successful!");
@@ -67,11 +63,7 @@ function SignIn() {
       return;
     }
 
-    alert(
-      studentLoginType === "email"
-        ? "Incorrect email or password"
-        : "Incorrect user ID or password"
-    );
+    alert("Incorrect email or password");
   };
 
   return (
@@ -83,10 +75,7 @@ function SignIn() {
         <button
           type="button"
           className={`role-tile ${role === "student" ? "active" : ""}`}
-          onClick={() => {
-            setRole("student");
-            setStudentLoginType("userid");
-          }}
+          onClick={() => setRole("student")}
         >
           <span className="role-icon" aria-hidden="true">🎓</span>
           <strong>Student</strong>
@@ -96,10 +85,7 @@ function SignIn() {
         <button
           type="button"
           className={`role-tile ${role === "faculty" ? "active" : ""}`}
-          onClick={() => {
-            setRole("faculty");
-            setStudentLoginType("email");
-          }}
+          onClick={() => setRole("faculty")}
         >
           <span className="role-icon" aria-hidden="true">🧑‍🏫</span>
           <strong>Faculty</strong>
@@ -107,35 +93,10 @@ function SignIn() {
         </button>
       </div>
 
-      {role === "student" && (
-        <div className="login-type-switch" role="tablist" aria-label="Student login type">
-          <button
-            type="button"
-            className={`login-type-btn ${studentLoginType === "userid" ? "active" : ""}`}
-            onClick={() => setStudentLoginType("userid")}
-          >
-            User ID
-          </button>
-          <button
-            type="button"
-            className={`login-type-btn ${studentLoginType === "email" ? "active" : ""}`}
-            onClick={() => setStudentLoginType("email")}
-          >
-            Email
-          </button>
-        </div>
-      )}
-
       <div className="form-row">
         <input
           type="text"
-          placeholder={
-            role === "faculty"
-              ? "Faculty Email"
-              : studentLoginType === "email"
-              ? "Enter Email"
-              : "Enter User ID"
-          }
+          placeholder={role === "faculty" ? "Faculty Email" : "User ID or Email"}
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
         />
