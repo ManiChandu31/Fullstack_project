@@ -43,15 +43,18 @@ function AssessmentTemplate({ title, questions: initialQuestions, storageKey, re
   const pct = Math.round(((index) / questions.length) * 100);
 
   function saveAttempt(finalScores) {
-    // Attach user identification if available
-    const user = JSON.parse(localStorage.getItem("userData")) || {};
-    const email = user.email || "guest";
+    const loggedUser = localStorage.getItem("loggedInUser");
+    const loggedUserId = localStorage.getItem("loggedInUserId");
+    const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
+    const userId = loggedUserId || loggedUser || loggedUserEmail || "guest";
 
     const attemptsRaw = localStorage.getItem("attempts");
     const attempts = attemptsRaw ? JSON.parse(attemptsRaw) : [];
     const attempt = {
       id: Date.now(),
-      user: email,
+      user: userId,
+      userId,
+      userEmail: loggedUserEmail || "",
       date: new Date().toISOString(),
       type: resultKey,
       scores: finalScores

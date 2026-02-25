@@ -6,9 +6,16 @@ function MyResults() {
 
   useEffect(() => {
     const loggedUser = localStorage.getItem("loggedInUser");
+    const loggedUserId = localStorage.getItem("loggedInUserId");
     const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
     const attempts = JSON.parse(localStorage.getItem("attempts")) || [];
-    const myResults = attempts.filter((a) => a.user === loggedUser || a.user === loggedUserEmail);
+    const myResults = attempts.filter(
+      (a) =>
+        a.user === loggedUser ||
+        a.userId === loggedUserId ||
+        a.user === loggedUserEmail ||
+        a.userEmail === loggedUserEmail
+    );
     setResults(myResults);
   }, []);
 

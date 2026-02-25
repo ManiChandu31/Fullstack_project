@@ -5,6 +5,7 @@ function ScheduledExams() {
   const navigate = useNavigate();
   const [schedules, setSchedules] = useState([]);
   const loggedUser = localStorage.getItem("loggedInUser");
+  const loggedUserId = localStorage.getItem("loggedInUserId");
   const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
 
   useEffect(() => {
@@ -28,7 +29,14 @@ function ScheduledExams() {
 
   const hasAttempted = (scheduleId) => {
     const attempts = JSON.parse(localStorage.getItem("attempts")) || [];
-    return attempts.some(a => (a.user === loggedUser || a.user === loggedUserEmail) && a.scheduleId === scheduleId);
+    return attempts.some(
+      (a) =>
+        (a.user === loggedUser ||
+          a.userId === loggedUserId ||
+          a.user === loggedUserEmail ||
+          a.userEmail === loggedUserEmail) &&
+        a.scheduleId === scheduleId
+    );
   };
 
   const getQuestionCount = (examType) => {

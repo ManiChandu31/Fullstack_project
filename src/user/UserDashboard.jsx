@@ -4,27 +4,33 @@ import { useState, useEffect } from "react";
 function UserDashboard() {
   const navigate = useNavigate();
   const [assessmentStats, setAssessmentStats] = useState({
-    completedCount: 0,
-    hasCompletedAny: false
+    completedCount: 0
   });
 
   useEffect(() => {
     const loggedUser = localStorage.getItem("loggedInUser");
+    const loggedUserId = localStorage.getItem("loggedInUserId");
     const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
     const attempts = JSON.parse(localStorage.getItem("attempts")) || [];
-    const myAttempts = attempts.filter(a => a.user === loggedUser || a.user === loggedUserEmail);
+    const myAttempts = attempts.filter(
+      (a) =>
+        a.user === loggedUser ||
+        a.userId === loggedUserId ||
+        a.user === loggedUserEmail ||
+        a.userEmail === loggedUserEmail
+    );
     
     const uniqueTests = new Set(myAttempts.map(a => a.testType));
     
     setAssessmentStats({
-      completedCount: uniqueTests.size,
-      hasCompletedAny: myAttempts.length > 0
+      completedCount: uniqueTests.size
     });
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("loggedIn");
     localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("loggedInUserId");
     localStorage.removeItem("loggedInUserEmail");
     localStorage.removeItem("loggedInUserName");
     alert("Logged out successfully!");
@@ -55,17 +61,6 @@ function UserDashboard() {
               View Schedules
             </button>
           </div>
-
-          {!assessmentStats.hasCompletedAny && (
-            <div className="cp-glass cp-action-card">
-              <div className="cp-action-icon">📝</div>
-              <h3>Take Assessment</h3>
-              <p>Start your career assessment and get personalized recommendations.</p>
-              <button className="cp-primary-btn" type="button" onClick={() => navigate("/user/scheduled-exams")}>
-                View Available Exams
-              </button>
-            </div>
-          )}
 
           <div className="cp-glass cp-action-card">
             <div className="cp-action-icon">📊</div>

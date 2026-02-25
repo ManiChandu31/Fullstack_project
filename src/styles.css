@@ -248,6 +248,30 @@ h3,
   margin-bottom: 18px;
 }
 
+.login-type-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.login-type-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #334155;
+  border-radius: 10px;
+  height: 38px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.login-type-btn.active {
+  border-color: #7f78ff;
+  color: #2b2a7f;
+  box-shadow: 0 6px 16px rgba(95, 89, 242, 0.16);
+}
+
 .role-tile {
   border: 1.5px solid var(--border);
   background: #fff;

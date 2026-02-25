@@ -4,8 +4,19 @@ import { useNavigate } from "react-router-dom";
 function SignIn() {
   const navigate = useNavigate();
   const [role, setRole] = useState("student");
+  const [studentLoginType, setStudentLoginType] = useState("userid");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+
+  const getStoredUsers = () => {
+    try {
+      const storedUsers = localStorage.getItem("users");
+      const parsedUsers = storedUsers ? JSON.parse(storedUsers) : [];
+      return Array.isArray(parsedUsers) ? parsedUsers : [];
+    } catch {
+      return [];
+    }
+  };
 
   const handleLogin = () => {
     const normalizedIdentifier = identifier.trim();
@@ -34,26 +45,33 @@ function SignIn() {
       return;
     }
 
-    // STUDENT LOGIN
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    const users = getStoredUsers();
 
-    const foundUser = users.find(
-      (u) =>
-        (u.email === normalizedEmail || u.userId === normalizedIdentifier) &&
-        u.password === normalizedPassword
-    );
+    const foundUser = users.find((u) => {
+      const isIdentifierMatch =
+        studentLoginType === "email"
+          ? u.email === normalizedEmail
+          : u.userId === normalizedIdentifier;
+
+      return isIdentifierMatch && u.password === normalizedPassword;
+    });
 
     if (foundUser) {
       alert("User Login Successful!");
       localStorage.setItem("loggedIn", "user");
       localStorage.setItem("loggedInUser", foundUser.userId || foundUser.email);
+      localStorage.setItem("loggedInUserId", foundUser.userId || "");
       localStorage.setItem("loggedInUserEmail", foundUser.email);
       localStorage.setItem("loggedInUserName", foundUser.userId || foundUser.email);
       navigate("/user/dashboard");
       return;
     }
 
-    alert("Incorrect email or password");
+    alert(
+      studentLoginType === "email"
+        ? "Incorrect email or password"
+        : "Incorrect user ID or password"
+    );
   };
 
   return (
@@ -65,7 +83,10 @@ function SignIn() {
         <button
           type="button"
           className={`role-tile ${role === "student" ? "active" : ""}`}
-          onClick={() => setRole("student")}
+          onClick={() => {
+            setRole("student");
+            setStudentLoginType("userid");
+          }}
         >
           <span className="role-icon" aria-hidden="true">🎓</span>
           <strong>Student</strong>
@@ -75,7 +96,10 @@ function SignIn() {
         <button
           type="button"
           className={`role-tile ${role === "faculty" ? "active" : ""}`}
-          onClick={() => setRole("faculty")}
+          onClick={() => {
+            setRole("faculty");
+            setStudentLoginType("email");
+          }}
         >
           <span className="role-icon" aria-hidden="true">🧑‍🏫</span>
           <strong>Faculty</strong>
@@ -83,10 +107,35 @@ function SignIn() {
         </button>
       </div>
 
+      {role === "student" && (
+        <div className="login-type-switch" role="tablist" aria-label="Student login type">
+          <button
+            type="button"
+            className={`login-type-btn ${studentLoginType === "userid" ? "active" : ""}`}
+            onClick={() => setStudentLoginType("userid")}
+          >
+            User ID
+          </button>
+          <button
+            type="button"
+            className={`login-type-btn ${studentLoginType === "email" ? "active" : ""}`}
+            onClick={() => setStudentLoginType("email")}
+          >
+            Email
+          </button>
+        </div>
+      )}
+
       <div className="form-row">
         <input
           type="text"
-          placeholder="User ID or Email"
+          placeholder={
+            role === "faculty"
+              ? "Faculty Email"
+              : studentLoginType === "email"
+              ? "Enter Email"
+              : "Enter User ID"
+          }
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
         />
