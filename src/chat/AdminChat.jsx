@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function AdminChat() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const chats = JSON.parse(localStorage.getItem("chatMessages")) || [];
+      return Array.isArray(chats) ? chats : [];
+    } catch {
+      return [];
+    }
+  });
   const [reply, setReply] = useState("");
-
-  useEffect(() => {
-    const chats = JSON.parse(localStorage.getItem("chatMessages")) || [];
-    setMessages(chats);
-  }, []);
 
   const sendReply = (id) => {
     const updated = messages.map((msg) =>

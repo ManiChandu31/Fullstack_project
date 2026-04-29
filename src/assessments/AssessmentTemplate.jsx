@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -13,24 +13,17 @@ function AssessmentTemplate({ title, questions: initialQuestions, storageKey, re
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [scores, setScores] = useState({});
-  const [questions, setQuestions] = useState(initialQuestions || []);
-  const [loading, setLoading] = useState(true);
+  const [questions] = useState(() => {
+    if (initialQuestions) return initialQuestions;
+    if (!storageKey) return [];
 
-  useEffect(() => {
-    if (!initialQuestions && storageKey) {
+    try {
       const raw = localStorage.getItem(storageKey);
-      try {
-        const parsed = raw ? JSON.parse(raw) : [];
-        setQuestions(parsed);
-      } catch {
-        setQuestions([]);
-      }
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
     }
-    setLoading(false);
-    // eslint-disable-next-line
-  }, []);
-
-  if (loading) return <div>Loading...</div>;
+  });
   if (!questions || questions.length === 0) {
     return <div>
       <h2 className="form-title">{title}</h2>
@@ -51,7 +44,7 @@ function AssessmentTemplate({ title, questions: initialQuestions, storageKey, re
     const attemptsRaw = localStorage.getItem("attempts");
     const attempts = attemptsRaw ? JSON.parse(attemptsRaw) : [];
     const attempt = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       user: userId,
       userId,
       userEmail: loggedUserEmail || "",

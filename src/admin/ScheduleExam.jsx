@@ -1,35 +1,23 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 function ScheduleExam() {
-  const navigate = useNavigate();
-  const [schedules, setSchedules] = useState([]);
-  const [formData, setFormData] = useState({
-    examType: "",
+  const [schedules, setSchedules] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("examSchedules")) || [];
+    } catch {
+      return [];
+    }
+  });
+  const [formData, setFormData] = useState(() => ({
+    examType: localStorage.getItem("selectedExamType") || "",
     startDate: "",
     startTime: "",
     endDate: "",
     endTime: "",
     duration: 30,
     instructions: ""
-  });
+  }));
   const [editingId, setEditingId] = useState(null);
-
-  useEffect(() => {
-    loadSchedules();
-    
-    // Check if coming from Manage Tests with pre-selected exam type
-    const selectedType = localStorage.getItem("selectedExamType");
-    if (selectedType) {
-      setFormData(prev => ({ ...prev, examType: selectedType }));
-      localStorage.removeItem("selectedExamType"); // Clear after using
-    }
-  }, []);
-
-  const loadSchedules = () => {
-    const saved = JSON.parse(localStorage.getItem("examSchedules")) || [];
-    setSchedules(saved);
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();

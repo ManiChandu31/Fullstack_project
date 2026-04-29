@@ -1,5 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../lib/api";
+
+const CATEGORY_MAP = [
+  "technical", "planning", "communication", "time-management", "pressure",
+  "learning", "collaboration", "presentation", "problem-solving", "analytical"
+];
+
+const TEST_TYPE = "Skills Evaluation";
 
 function SkillsEvaluation() {
   const navigate = useNavigate();
@@ -11,11 +19,6 @@ function SkillsEvaluation() {
 
   const [answers, setAnswers] = useState([]);
 
-  const categoryMap = [
-    "technical", "planning", "communication", "time-management", "pressure",
-    "learning", "collaboration", "presentation", "problem-solving", "analytical"
-  ];
-
   useEffect(() => {
     // Check if this is a scheduled exam - REQUIRED
     const scheduleData = localStorage.getItem("currentExamSchedule");
@@ -26,7 +29,7 @@ function SkillsEvaluation() {
     }
 
     const schedule = JSON.parse(scheduleData);
-    if (schedule.examType !== "Skills Evaluation") {
+    if (schedule.examType !== TEST_TYPE) {
       alert("Invalid exam type for this assessment.");
       navigate("/user/scheduled-exams");
       return;
@@ -38,7 +41,7 @@ function SkillsEvaluation() {
     const attempts = JSON.parse(localStorage.getItem("attempts")) || [];
     const hasCompleted = attempts.some(a => 
       (a.user === loggedUser || a.user === loggedUserEmail) && 
-      a.testType === "Skills Evaluation" && 
+      a.testType === TEST_TYPE && 
       a.scheduleId === schedule.id
     );
 
@@ -63,7 +66,7 @@ function SkillsEvaluation() {
     const formattedQuestions = publishedQuestions.map((item, index) => ({
       q: item.question,
       weight: 2,
-      category: categoryMap[index % categoryMap.length]
+      category: CATEGORY_MAP[index % CATEGORY_MAP.length]
     }));
 
     setQuestions(formattedQuestions);
@@ -75,7 +78,61 @@ function SkillsEvaluation() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [navigate]);
+
+  const handleSubmit = useCallback(async (autoSubmit = false) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const hasEmptyAnswer = answers.some((answer) => answer === "");
+    if (!autoSubmit && hasEmptyAnswer) {
+      alert("Please answer all questions");
+      return;
+    }
+
+    const score = questions.reduce((total, item, index) => {
+      return total + Number(answers[index]) * item.weight;
+    }, 0);
+
+    const loggedUser = localStorage.getItem("loggedInUser");
+    const loggedUserId = localStorage.getItem("loggedInUserId");
+    const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
+    const resolvedUserId = loggedUserId || loggedUser || loggedUserEmail;
+
+    if (!resolvedUserId) {
+      alert("No logged in user found. Please sign in again.");
+      return;
+    }
+
+    try {
+      const response = await fetch(apiUrl("/api/results"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: resolvedUserId,
+          testType: TEST_TYPE,
+          score,
+          answers: JSON.stringify(answers)
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to save result");
+      }
+
+      localStorage.removeItem("currentExamSchedule");
+    } catch (error) {
+      alert("Failed to store result in database: " + error.message);
+      return;
+    }
+
+    if (autoSubmit) {
+      alert("Time's up! Your exam has been automatically submitted.");
+    } else {
+      alert("Skills Evaluation Completed!");
+    }
+    navigate("/user/results");
+  }, [answers, navigate, questions]);
 
   useEffect(() => {
     if (timeRemaining !== null && timeRemaining > 0) {
@@ -92,7 +149,7 @@ function SkillsEvaluation() {
 
       return () => clearInterval(timerRef.current);
     }
-  }, [timeRemaining]);
+  }, [handleSubmit, timeRemaining]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -104,46 +161,6 @@ function SkillsEvaluation() {
     const updated = [...answers];
     updated[index] = value;
     setAnswers(updated);
-  };
-
-  const handleSubmit = (autoSubmit = false) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    const hasEmptyAnswer = answers.some((answer) => answer === "");
-    if (!autoSubmit && hasEmptyAnswer) {
-      alert("Please answer all questions");
-      return;
-    }
-
-    const score = questions.reduce((total, item, index) => {
-      return total + Number(answers[index]) * item.weight;
-    }, 0);
-
-    const loggedUser = localStorage.getItem("loggedInUser");
-    const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
-
-    let attempts = JSON.parse(localStorage.getItem("attempts")) || [];
-
-    attempts.push({
-      user: loggedUser,
-      userId: loggedUser,
-      userEmail: loggedUserEmail,
-      testType: "Skills Evaluation",
-      score,
-      answers,
-      scheduleId: examSchedule?.id || null,
-      date: new Date().toISOString()
-    });
-
-    localStorage.setItem("attempts", JSON.stringify(attempts));
-    localStorage.removeItem("currentExamSchedule");
-
-    if (autoSubmit) {
-      alert("Time's up! Your exam has been automatically submitted.");
-    } else {
-      alert("Skills Evaluation Completed!");
-    }
-    navigate("/user/results");
   };
 
   if (loading) {

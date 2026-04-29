@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiUrl } from "../lib/api";
 
 function TestResult() {
   const [results, setResults] = useState([]);
@@ -8,15 +9,22 @@ function TestResult() {
     const loggedUser = localStorage.getItem("loggedInUser");
     const loggedUserId = localStorage.getItem("loggedInUserId");
     const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
-    const attempts = JSON.parse(localStorage.getItem("attempts")) || [];
-    const myResults = attempts.filter(
-      (a) =>
-        a.user === loggedUser ||
-        a.userId === loggedUserId ||
-        a.user === loggedUserEmail ||
-        a.userEmail === loggedUserEmail
-    );
-    setResults(myResults);
+    const resolvedUserId = loggedUserId || loggedUser || loggedUserEmail;
+
+    if (!resolvedUserId) {
+      return;
+    }
+
+    fetch(apiUrl(`/api/results?userId=${encodeURIComponent(resolvedUserId)}`))
+      .then((res) => res.json())
+      .then((data) => {
+        const normalized = (Array.isArray(data) ? data : []).map((item) => ({
+          ...item,
+          answers: typeof item.answers === "string" ? JSON.parse(item.answers || "[]") : (item.answers || [])
+        }));
+        setResults(normalized);
+      })
+      .catch(() => setResults([]));
   }, []);
 
   const analyzePersonality = (result) => {

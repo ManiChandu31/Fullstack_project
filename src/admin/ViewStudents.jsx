@@ -1,17 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function ViewStudents() {
-  const [students, setStudents] = useState([]);
+  const [students, setStudents] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("users")) || [];
+    } catch {
+      return [];
+    }
+  });
   const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    loadStudents();
-  }, []);
-
-  const loadStudents = () => {
-    const users = JSON.parse(localStorage.getItem("users")) || [];
-    setStudents(users);
-  };
 
   const handleRemoveStudent = (student) => {
     const studentLabel = student.userId || student.email;
@@ -35,7 +32,7 @@ function ViewStudents() {
     localStorage.setItem("adminFeedback", JSON.stringify(feedbacks));
 
     alert(`Student ${studentLabel} has been successfully removed from the system.`);
-    loadStudents(); // Reload the list
+    setStudents(users);
   };
 
   const filteredStudents = students.filter(student =>

@@ -1,21 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "./lib/api";
 
 function SignIn() {
   const navigate = useNavigate();
   const [role, setRole] = useState("student");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-
-  const getStoredUsers = () => {
-    try {
-      const storedUsers = localStorage.getItem("users");
-      const parsedUsers = storedUsers ? JSON.parse(storedUsers) : [];
-      return Array.isArray(parsedUsers) ? parsedUsers : [];
-    } catch {
-      return [];
-    }
-  };
 
   const handleLogin = () => {
     const normalizedIdentifier = identifier.trim();
@@ -44,26 +35,28 @@ function SignIn() {
       return;
     }
 
-    const users = getStoredUsers();
-
-    const foundUser = users.find(
-      (u) =>
-        (u.email === normalizedEmail || u.userId === normalizedIdentifier) &&
-        u.password === normalizedPassword
-    );
-
-    if (foundUser) {
-      alert("User Login Successful!");
-      localStorage.setItem("loggedIn", "user");
-      localStorage.setItem("loggedInUser", foundUser.userId || foundUser.email);
-      localStorage.setItem("loggedInUserId", foundUser.userId || "");
-      localStorage.setItem("loggedInUserEmail", foundUser.email);
-      localStorage.setItem("loggedInUserName", foundUser.userId || foundUser.email);
-      navigate("/user/dashboard");
-      return;
-    }
-
-    alert("Incorrect email or password");
+    // Call backend login for students
+    fetch(apiUrl('/api/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: normalizedIdentifier, password: normalizedPassword, role })
+    }).then(async (res) => {
+      if (res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert('User Login Successful!');
+        localStorage.setItem('loggedIn', body.role || 'user');
+        localStorage.setItem('loggedInUser', body.userId || body.email || normalizedIdentifier);
+        localStorage.setItem('loggedInUserId', body.userId || '');
+        localStorage.setItem('loggedInUserEmail', body.email || '');
+        localStorage.setItem('loggedInUserName', body.userId || body.email || normalizedIdentifier);
+        navigate('/user/dashboard');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Incorrect email or password');
+      }
+    }).catch((e) => {
+      alert('Could not reach server: ' + e.message);
+    });
   };
 
   return (

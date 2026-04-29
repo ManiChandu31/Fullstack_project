@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 /**
@@ -35,15 +35,9 @@ function ManageTests() {
   ]);
   const [editingIndex, setEditingIndex] = useState(-1);
 
-  useEffect(() => {
-    loadItems();
-    // eslint-disable-next-line
-  }, [type]);
-
-  function loadItems() {
-    const raw = localStorage.getItem(STORAGE_KEYS[type]);
-    if (raw) setItems(JSON.parse(raw));
-    else setItems([]);
+  function loadItems(currentType = type) {
+    const raw = localStorage.getItem(STORAGE_KEYS[currentType]);
+    return raw ? JSON.parse(raw) : [];
   }
 
   function saveItems(next) {
@@ -134,7 +128,16 @@ function ManageTests() {
         <div className="test-header-section">
           <div className="form-row inline-actions">
             <label htmlFor="testTypeSelect">Choose test:</label>
-            <select id="testTypeSelect" value={type} onChange={(e) => setType(e.target.value)} style={{ maxWidth: 260 }}>
+            <select
+              id="testTypeSelect"
+              value={type}
+              onChange={(e) => {
+                const nextType = e.target.value;
+                setType(nextType);
+                setItems(loadItems(nextType));
+              }}
+              style={{ maxWidth: 260 }}
+            >
               <option value="career">Career Assessment</option>
               <option value="personality">Personality Test</option>
               <option value="skill">Skills Evaluation</option>

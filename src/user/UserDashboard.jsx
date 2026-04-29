@@ -1,13 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 
 function UserDashboard() {
   const navigate = useNavigate();
-  const [assessmentStats, setAssessmentStats] = useState({
-    completedCount: 0
-  });
-
-  useEffect(() => {
+  const assessmentStats = useMemo(() => {
     const loggedUser = localStorage.getItem("loggedInUser");
     const loggedUserId = localStorage.getItem("loggedInUserId");
     const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
@@ -21,10 +17,7 @@ function UserDashboard() {
     );
     
     const uniqueTests = new Set(myAttempts.map(a => a.testType));
-    
-    setAssessmentStats({
-      completedCount: uniqueTests.size
-    });
+    return { completedCount: uniqueTests.size };
   }, []);
 
   const handleLogout = () => {

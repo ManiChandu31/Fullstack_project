@@ -1,19 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 function CareerRecommendations() {
-  const [careerList, setCareerList] = useState([]);
+  const [careerRecommendations, setCareerRecommendations] = useState(() => {
+    try {
+      const saved = localStorage.getItem("careerRecommendations");
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
   const [newCareer, setNewCareer] = useState("");
   const [newDescription, setNewDescription] = useState("");
 
-  // Load existing recommendations
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("careerRecommendations")) || [];
-    setCareerList(saved);
-  }, []);
-
   // Save recommendations to localStorage
   const saveRecommendations = (updatedList) => {
-    setCareerList(updatedList);
+    setCareerRecommendations(updatedList);
     localStorage.setItem("careerRecommendations", JSON.stringify(updatedList));
   };
 
@@ -25,8 +27,8 @@ function CareerRecommendations() {
     }
 
     const updated = [
-      ...careerList,
-      { id: Date.now(), title: newCareer, description: newDescription }
+      ...careerRecommendations,
+      { id: crypto.randomUUID(), title: newCareer, description: newDescription }
     ];
 
     saveRecommendations(updated);
@@ -38,7 +40,7 @@ function CareerRecommendations() {
 
   // Delete recommendation
   const handleDelete = (id) => {
-    const updated = careerList.filter((item) => item.id !== id);
+    const updated = careerRecommendations.filter((item) => item.id !== id);
     saveRecommendations(updated);
     alert("Recommendation deleted!");
   };
@@ -71,11 +73,11 @@ function CareerRecommendations() {
 
         <h3 className="section-title" style={{ marginTop: 18 }}>Existing Recommendations</h3>
 
-        {careerList.length === 0 ? (
+        {careerRecommendations.length === 0 ? (
           <p>No recommendations added yet.</p>
         ) : (
           <ul className="clean-list">
-            {careerList.map((item) => (
+            {careerRecommendations.map((item) => (
               <li key={item.id} className="list-item-card" style={{ marginBottom: 10 }}>
                 <strong>{item.title}</strong>
                 <p>{item.description}</p>

@@ -1,14 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function StudentResults() {
-  const [results, setResults] = useState([]);
-  const [studentDirectory, setStudentDirectory] = useState({});
-  const [selectedResult, setSelectedResult] = useState(null);
-  const [selectedIndex, setSelectedIndex] = useState(null);
-  const [feedbackForm, setFeedbackForm] = useState({ feedback: "", suggestions: "" });
-  const [filterStudent, setFilterStudent] = useState("");
-
-  useEffect(() => {
+  const [results] = useState(() => {
     const attempts = JSON.parse(localStorage.getItem("attempts")) || [];
     const users = JSON.parse(localStorage.getItem("users")) || [];
     const normalizedUsers = users.map((user) => ({
@@ -49,9 +42,23 @@ function StudentResults() {
       localStorage.setItem("attempts", JSON.stringify(migratedAttempts));
     }
 
-    setResults(migratedAttempts);
-    setStudentDirectory(directory);
-  }, []);
+    return migratedAttempts;
+  });
+  const [studentDirectory] = useState(() => {
+    const users = JSON.parse(localStorage.getItem("users")) || [];
+    return users.reduce((acc, user) => {
+      const userId = user.userId || user.email;
+      if (user?.email) {
+        acc[user.email] = userId;
+        acc[userId] = userId;
+      }
+      return acc;
+    }, {});
+  });
+  const [selectedResult, setSelectedResult] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [feedbackForm, setFeedbackForm] = useState({ feedback: "", suggestions: "" });
+  const [filterStudent, setFilterStudent] = useState("");
 
   const normalizeStudentKey = (studentId) =>
     studentId && String(studentId).trim() ? String(studentId) : "__unknown__";

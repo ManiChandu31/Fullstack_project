@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../lib/api";
+
+const CAREER_QUESTION_TYPE = "Career Assessment";
 
 function CareerAssessment() {
   const navigate = useNavigate();
@@ -20,7 +23,7 @@ function CareerAssessment() {
     }
 
     const schedule = JSON.parse(scheduleData);
-    if (schedule.examType !== "Career Assessment") {
+    if (schedule.examType !== CAREER_QUESTION_TYPE) {
       alert("Invalid exam type for this assessment.");
       navigate("/user/scheduled-exams");
       return;
@@ -32,7 +35,7 @@ function CareerAssessment() {
     const attempts = JSON.parse(localStorage.getItem("attempts")) || [];
     const hasCompleted = attempts.some(a => 
       (a.user === loggedUser || a.user === loggedUserEmail) && 
-      a.testType === "Career Assessment" && 
+      a.testType === CAREER_QUESTION_TYPE && 
       a.scheduleId === schedule.id
     );
 
@@ -54,7 +57,7 @@ function CareerAssessment() {
     }
 
     // Convert stored question format to assessment format
-    const formattedQuestions = publishedQuestions.map((item, index) => ({
+    const formattedQuestions = publishedQuestions.map((item) => ({
       q: item.question,
       weight: 2,
       type: "select"
@@ -69,7 +72,62 @@ function CareerAssessment() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [navigate]);
+
+  const handleSubmit = useCallback(async (autoSubmit = false) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const hasEmptyAnswer = answers.some((answer) => answer === "");
+
+    if (!autoSubmit && hasEmptyAnswer) {
+      alert("Please answer all questions");
+      return;
+    }
+
+    const score = questions.reduce((total, item, index) => {
+      return total + Number(answers[index]) * item.weight;
+    }, 0);
+
+    const loggedUser = localStorage.getItem("loggedInUser");
+    const loggedUserId = localStorage.getItem("loggedInUserId");
+    const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
+    const resolvedUserId = loggedUserId || loggedUser || loggedUserEmail;
+
+    if (!resolvedUserId) {
+      alert("No logged in user found. Please sign in again.");
+      return;
+    }
+
+    try {
+      const response = await fetch(apiUrl("/api/results"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: resolvedUserId,
+          testType: CAREER_QUESTION_TYPE,
+          score,
+          answers: JSON.stringify(answers)
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to save result");
+      }
+
+      localStorage.removeItem("currentExamSchedule");
+    } catch (error) {
+      alert("Failed to store result in database: " + error.message);
+      return;
+    }
+
+    if (autoSubmit) {
+      alert("Time's up! Your exam has been automatically submitted.");
+    } else {
+      alert("Career Assessment Completed!");
+    }
+    navigate("/user/results");
+  }, [answers, navigate, questions]);
 
   useEffect(() => {
     if (timeRemaining !== null && timeRemaining > 0) {
@@ -86,7 +144,7 @@ function CareerAssessment() {
 
       return () => clearInterval(timerRef.current);
     }
-  }, [timeRemaining]);
+  }, [handleSubmit, timeRemaining]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -98,46 +156,6 @@ function CareerAssessment() {
     const updated = [...answers];
     updated[index] = value;
     setAnswers(updated);
-  };
-
-  const handleSubmit = (autoSubmit = false) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    const hasEmptyAnswer = answers.some((answer) => answer === "");
-
-    if (!autoSubmit && hasEmptyAnswer) {
-      alert("Please answer all questions");
-      return;
-    }
-
-    const score = questions.reduce((total, item, index) => {
-      return total + Number(answers[index]) * item.weight;
-    }, 0);
-
-    const loggedUser = localStorage.getItem("loggedInUser");
-    const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
-    let attempts = JSON.parse(localStorage.getItem("attempts")) || [];
-
-    attempts.push({
-      user: loggedUser,
-      userId: loggedUser,
-      userEmail: loggedUserEmail,
-      testType: "Career Assessment",
-      score,
-      answers,
-      scheduleId: examSchedule?.id || null,
-      date: new Date().toISOString()
-    });
-
-    localStorage.setItem("attempts", JSON.stringify(attempts));
-    localStorage.removeItem("currentExamSchedule");
-    
-    if (autoSubmit) {
-      alert("Time's up! Your exam has been automatically submitted.");
-    } else {
-      alert("Career Assessment Completed!");
-    }
-    navigate("/user/results");
   };
 
   if (loading) {

@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function StudentChat() {
-  const [messages, setMessages] = useState([]);
-  const [newMsg, setNewMsg] = useState("");
-
   const user = localStorage.getItem("loggedInUser");
   const userEmail = localStorage.getItem("loggedInUserEmail");
-
-  useEffect(() => {
-    const chats = JSON.parse(localStorage.getItem("chatMessages")) || [];
-    setMessages(chats.filter((m) => m.user === user || m.user === userEmail));
-  }, []);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const chats = JSON.parse(localStorage.getItem("chatMessages")) || [];
+      return Array.isArray(chats) ? chats.filter((m) => m.user === user || m.user === userEmail) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [newMsg, setNewMsg] = useState("");
 
   const sendMessage = () => {
     if (!newMsg.trim()) return;

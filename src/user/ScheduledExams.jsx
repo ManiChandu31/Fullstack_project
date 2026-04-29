@@ -1,21 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function ScheduledExams() {
   const navigate = useNavigate();
-  const [schedules, setSchedules] = useState([]);
+  const [schedules] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("examSchedules")) || [];
+    } catch {
+      return [];
+    }
+  });
   const loggedUser = localStorage.getItem("loggedInUser");
   const loggedUserId = localStorage.getItem("loggedInUserId");
   const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
-
-  useEffect(() => {
-    loadSchedules();
-  }, []);
-
-  const loadSchedules = () => {
-    const allSchedules = JSON.parse(localStorage.getItem("examSchedules")) || [];
-    setSchedules(allSchedules);
-  };
 
   const getStatus = (schedule) => {
     const now = new Date();

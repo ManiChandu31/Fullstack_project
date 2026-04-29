@@ -1,5 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiUrl } from "../lib/api";
+
+const CATEGORY_MAP = [
+  "teamwork", "creativity", "communication", "social", "emotional",
+  "empathy", "adaptability", "openness", "organization", "curiosity"
+];
+
+const TEST_TYPE = "Personality Test";
 
 function PersonalityTest() {
   const navigate = useNavigate();
@@ -11,11 +19,6 @@ function PersonalityTest() {
 
   const [answers, setAnswers] = useState([]);
 
-  const categoryMap = [
-    "teamwork", "creativity", "communication", "social", "emotional",
-    "empathy", "adaptability", "openness", "organization", "curiosity"
-  ];
-
   useEffect(() => {
     // Check if this is a scheduled exam - REQUIRED
     const scheduleData = localStorage.getItem("currentExamSchedule");
@@ -26,7 +29,7 @@ function PersonalityTest() {
     }
 
     const schedule = JSON.parse(scheduleData);
-    if (schedule.examType !== "Personality Test") {
+    if (schedule.examType !== TEST_TYPE) {
       alert("Invalid exam type for this assessment.");
       navigate("/user/scheduled-exams");
       return;
@@ -38,7 +41,7 @@ function PersonalityTest() {
     const attempts = JSON.parse(localStorage.getItem("attempts")) || [];
     const hasCompleted = attempts.some(a => 
       (a.user === loggedUser || a.user === loggedUserEmail) && 
-      a.testType === "Personality Test" && 
+      a.testType === TEST_TYPE && 
       a.scheduleId === schedule.id
     );
 
@@ -63,7 +66,7 @@ function PersonalityTest() {
     const formattedQuestions = publishedQuestions.map((item, index) => ({
       q: item.question,
       weight: 2,
-      category: categoryMap[index % categoryMap.length]
+      category: CATEGORY_MAP[index % CATEGORY_MAP.length]
     }));
 
     setQuestions(formattedQuestions);
@@ -75,7 +78,61 @@ function PersonalityTest() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [navigate]);
+
+  const handleSubmit = useCallback(async (autoSubmit = false) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    const hasEmptyAnswer = answers.some((answer) => answer === "");
+    if (!autoSubmit && hasEmptyAnswer) {
+      alert("Please answer all questions");
+      return;
+    }
+
+    const score = questions.reduce((total, item, index) => {
+      return total + Number(answers[index]) * item.weight;
+    }, 0);
+
+    const loggedUser = localStorage.getItem("loggedInUser");
+    const loggedUserId = localStorage.getItem("loggedInUserId");
+    const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
+    const resolvedUserId = loggedUserId || loggedUser || loggedUserEmail;
+
+    if (!resolvedUserId) {
+      alert("No logged in user found. Please sign in again.");
+      return;
+    }
+
+    try {
+      const response = await fetch(apiUrl("/api/results"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: resolvedUserId,
+          testType: TEST_TYPE,
+          score,
+          answers: JSON.stringify(answers)
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to save result");
+      }
+
+      localStorage.removeItem("currentExamSchedule");
+    } catch (error) {
+      alert("Failed to store result in database: " + error.message);
+      return;
+    }
+
+    if (autoSubmit) {
+      alert("Time's up! Your exam has been automatically submitted.");
+    } else {
+      alert("Personality Test Completed!");
+    }
+    navigate("/user/results");
+  }, [answers, navigate, questions]);
 
   useEffect(() => {
     if (timeRemaining !== null && timeRemaining > 0) {
@@ -92,7 +149,7 @@ function PersonalityTest() {
 
       return () => clearInterval(timerRef.current);
     }
-  }, [timeRemaining]);
+  }, [handleSubmit, timeRemaining]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -104,45 +161,6 @@ function PersonalityTest() {
     const updated = [...answers];
     updated[index] = value;
     setAnswers(updated);
-  };
-
-  const handleSubmit = (autoSubmit = false) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    const hasEmptyAnswer = answers.some((answer) => answer === "");
-    if (!autoSubmit && hasEmptyAnswer) {
-      alert("Please answer all questions");
-      return;
-    }
-
-    const score = questions.reduce((total, item, index) => {
-      return total + Number(answers[index]) * item.weight;
-    }, 0);
-
-    const loggedUser = localStorage.getItem("loggedInUser");
-    const loggedUserEmail = localStorage.getItem("loggedInUserEmail");
-    let attempts = JSON.parse(localStorage.getItem("attempts")) || [];
-
-    attempts.push({
-      user: loggedUser,
-      userId: loggedUser,
-      userEmail: loggedUserEmail,
-      testType: "Personality Test",
-      score,
-      answers,
-      scheduleId: examSchedule?.id || null,
-      date: new Date().toISOString()
-    });
-
-    localStorage.setItem("attempts", JSON.stringify(attempts));
-    localStorage.removeItem("currentExamSchedule");
-    
-    if (autoSubmit) {
-      alert("Time's up! Your exam has been automatically submitted.");
-    } else {
-      alert("Personality Test Completed!");
-    }
-    navigate("/user/results");
   };
 
   if (loading) {

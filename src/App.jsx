@@ -30,6 +30,8 @@ import StudentResults from "./admin/StudentResults";
 
 import StudentChat from "./chat/StudentChat";
 import AdminChat from "./chat/AdminChat";
+import AdminMenuBar from "./components/AdminMenuBar";
+import StudentMenuBar from "./components/StudentMenuBar";
 
 
 function App() {
@@ -40,6 +42,16 @@ function App() {
     location.pathname === "/" ||
     location.pathname === "/signin" ||
     location.pathname === "/signup";
+
+  const isAdminModuleRoute = location.pathname.startsWith("/admin");
+  const isStudentModuleRoute =
+    location.pathname.startsWith("/user") ||
+    location.pathname.startsWith("/student") ||
+    location.pathname.startsWith("/career") ||
+    location.pathname.startsWith("/personality") ||
+    location.pathname.startsWith("/skills") ||
+    location.pathname.startsWith("/test-result") ||
+    location.pathname.startsWith("/careers");
 
   const dashboardPath =
     loggedInRole === "admin"
@@ -52,9 +64,11 @@ function App() {
     location.pathname === "/admin/dashboard" ||
     location.pathname === "/user/dashboard";
 
+  const isModuleLayout = isAdminModuleRoute || isStudentModuleRoute;
+
   return (
-    <div className="app">
-      {!isAuthRoute && (
+    <div className={`app ${isModuleLayout ? "module-layout" : ""}`}>
+      {!isAuthRoute && !isAdminModuleRoute && !isStudentModuleRoute && (
         <header className="topbar">
           <div className="brand">CareerPath</div>
           <nav className="topbar-links">
@@ -69,6 +83,9 @@ function App() {
           </nav>
         </header>
       )}
+
+      {isAdminModuleRoute && <AdminMenuBar />}
+      {isStudentModuleRoute && <StudentMenuBar />}
 
       <Routes>
 
